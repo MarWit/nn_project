@@ -37,7 +37,7 @@ class datasets(object):
             transform  : torchvision.transforms
                 custom transform, data_aug needs to be set to True
             pacs       : string
-                choose PACS data type - one of the following [art, cartoon, photo, sketch]                
+                choose PACS data type - one of the following [art_painting, cartoon, photo, sketch]                
 
         You can directly access data via datasets._train, datasets._test and datasets._extra variables
         E.g datasets._train.train_data[index], datasets._extra.extra_labels[index]
@@ -82,7 +82,7 @@ class datasets(object):
         """
         if self.data_aug:
             self.transform = torchvision.transforms.Compose([       
-                            torchvision.transforms.RandomResizedCrop(self.img_size, ratio=(0.95, 1.05), scale=(0.40, 1.0)),
+                            torchvision.transforms.RandomResizedCrop(self.img_size, ratio=(0.85, 1.05), scale=(0.40, 1.0)),
                             torchvision.transforms.RandomHorizontalFlip(),
                             torchvision.transforms.ToTensor(),
                             torchvision.transforms.Normalize(norm[0], norm[1]),                     
@@ -175,7 +175,7 @@ class datasets(object):
                 one of the following : 'test', 'train', 'extra' (if available)
                 specify split of data to choose from
 
-        Returns single value from database on form of tuple (image, label)    
+        Returns single value from database in a form of tuple (image, label)    
         """
         if self._train is None or self._test is None:
             raise ValueError('Init dataset first!')
@@ -193,7 +193,7 @@ class datasets(object):
             split : string
                 one of the following : 'test', 'train', 'extra' (if available)
                 specify split of data to choose from
-        Returns number os items in dataset
+        Returns number of items in dataset
         """
         if self._train is None or self._test is None:
             raise ValueError('Init dataset first!')
@@ -220,19 +220,6 @@ class datasets(object):
         img, _ = self.item(index, split)
         plotter.plot_mat(img.numpy()[None, :])
 
-    def to_grayscale(self, batch):
-        """To grayscale
-
-        Parameters:
-            batch : array of images [n x 3 x w x h]
-
-        Changes images to grayscale, returns array of images [n x 1 x w x h]
-        """
-        batch[:,0,:,:] *= 0.2126
-        batch[:,1,:,:] *= 0.7152
-        batch[:,2,:,:] *= 0.0722
-        return (batch.sum(dim=1))
-
     def pac_label_to_string(self, id):
         """Pac label to string
 
@@ -246,9 +233,6 @@ class datasets(object):
         if (id < 1) or id > 7:
             raise ValueError('id not in 1-7 range')
         return m[id-1]
-
-
-
 
 
 class PACS(data.Dataset):
