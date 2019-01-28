@@ -17,10 +17,15 @@ def to_grayscale(batch):
     """To grayscale
 
     Parameters:
-        batch : array of images [n x 3 x w x h]
+        batch : array of images [n x 3 x w x h] or [n x 1 x w x h]
 
-    Changes images to grayscale, returns array of images [n x 1 x w x h]
+
+    Changes images to grayscale if possible, returns array of images [n x 1 x w x h]
     """
+
+    if batch.shape[1] == 1:
+        return batch
+
     batch[:,0,:,:] *= 0.2126
     batch[:,1,:,:] *= 0.7152
     batch[:,2,:,:] *= 0.0722
