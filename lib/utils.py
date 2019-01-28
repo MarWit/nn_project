@@ -10,8 +10,6 @@ def to_3channels(img):
     Changes one channeled batch of images to three channeled in shape
         n x 3 x w x h
     """
-    #b, _, w, h = img.shape
-    #return torch.tensor(np.stack((img,)*3, axis=1)).reshape(b, 3, w, h)
     return img.repeat(1, 3, 1, 1)
 
 
@@ -27,3 +25,17 @@ def to_grayscale(batch):
     batch[:,1,:,:] *= 0.7152
     batch[:,2,:,:] *= 0.0722
     return (batch.sum(dim=1)[:,None,:])
+
+def pac_label_to_string(id):
+    """Pac label to string
+
+    Parameters:
+        id : int 
+        label of picture from PACS database, ranges from 1-7
+
+    Returns label mapped to string equivalent
+    """
+    m = ['dog', 'elephant', 'giraffe', 'gituar', 'horse', 'house','person']
+    if (id < 1) or id > 7:
+        raise ValueError('id not in 1-7 range')
+    return m[id-1]    

@@ -218,21 +218,7 @@ class datasets(object):
         """
 
         img, _ = self.item(index, split)
-        plotter.plot_mat(img.numpy()[None, :])
-
-    def pac_label_to_string(self, id):
-        """Pac label to string
-
-        Parameters:
-            id : int 
-            label of picture from PACS database, ranges from 1-7
-
-        Returns label mapped to string equivalent
-        """
-        m = ['dog', 'elephant', 'giraffe', 'gituar', 'horse', 'house','person']
-        if (id < 1) or id > 7:
-            raise ValueError('id not in 1-7 range')
-        return m[id-1]
+        plotter.plot_mat(img.numpy()[None, :])2
 
 
 class PACS(data.Dataset):
