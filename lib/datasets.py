@@ -218,7 +218,7 @@ class datasets(object):
         """
 
         img, _ = self.item(index, split)
-        plotter.plot_mat(img.numpy()[None, :])2
+        plotter.plot_mat(img.numpy()[None, :])
 
 
 class PACS(data.Dataset):
