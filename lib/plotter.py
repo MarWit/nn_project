@@ -5,6 +5,7 @@ imported from https://github.com/janchorowski/nn_assignments/blob/nn18/common/pl
 
 import numpy as np
 from matplotlib import pyplot
+import pylab
 
 import seaborn as sns
 sns.set_style('whitegrid')
@@ -53,3 +54,20 @@ def plot_mat(mat, scaleIndividual=True, colorbar=False, prop=(9,16), gutters=2,
     if colorbar:
         pyplot.colorbar()
     pyplot.axis('off')
+
+
+
+def plot_history(history):
+    pyplot.figure(figsize=(16, 4))
+    pyplot.subplot(1,2,1)
+    train_loss = np.array(history['train_losses'])
+    pyplot.semilogy(np.arange(train_loss.shape[0]), train_loss, label='batch train loss')
+    pyplot.legend()
+        
+    pyplot.subplot(1,2,2)
+    train_errs = np.array(history['train_errs'])
+    pyplot.plot(np.arange(train_errs.shape[0]), train_errs, label='batch train error rate')
+    val_errs = np.array(history['val_errs'])
+    pyplot.plot(val_errs[:,0], val_errs[:,1], label='validation error rate', color='r')
+    pyplot.ylim(0,20)
+    pyplot.legend()    
