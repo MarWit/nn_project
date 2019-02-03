@@ -22,7 +22,7 @@ class datasets(object):
         self.dataset_list = list(zip(self.dataset_list_plain, [self.load_mnist, self.load_mnist_m, self.load_svhn, self.load_usps, self.load_pacs]))
         self.data_path = './data'    
 
-    def create_dataset(self, dataset, train_size=None, data_aug=False, img_size=224, transform=None, pacs='art_painting'):
+    def create_dataset(self, dataset, train_size=None, data_aug=False, img_size=224, transform=None, pacs='art_painting', pacs_heuristic=False):
         """Create dataset
 
         Parameters:
@@ -38,6 +38,8 @@ class datasets(object):
                 custom transform, data_aug needs to be set to True
             pacs       : string
                 choose PACS data type - one of the following [art_painting, cartoon, photo, sketch]                
+            pacs_heuristics : bool
+                if set to true batch will contain mix of pacs types except the one from 'pacs' argument which will be in testing 
 
         You can directly access data via datasets._train, datasets._test and datasets._extra variables
         E.g datasets._train.train_data[index], datasets._extra.extra_labels[index]
@@ -51,6 +53,7 @@ class datasets(object):
         self.img_size=img_size
         self.transform = transform
         self.pacs = pacs
+        self.heu = pacs_heuristic
 
         if 'self._train' in locals():
             if self._train is not None:
@@ -127,11 +130,33 @@ class datasets(object):
     def load_pacs(self):
         if self.transform is None:
             self.get_transform(((0.5,0.5,0.5), (0.5,0.5,0.5)))
+        if self.heu is False:
+            self._train = PACS(self.data_path, transform=self.transform, split='train', style=self.pacs)
+            self._test = PACS(self.data_path, transform=self.transform, split='test', style=self.pacs)
+            self._extra = PACS(self.data_path, transform=self.transform, split='validate', style=self.pacs)
+        else:
+            self._test = PACS(self.data_path, transform=self.transform, split='test', style=self.pacs)
+            b = False
+            stack_d = []
+            stack_l = []
 
-        self._train = PACS(self.data_path, transform=self.transform, split='train', style=self.pacs)
-        self._test = PACS(self.data_path, transform=self.transform, split='test', style=self.pacs)
-        self._extra = PACS(self.data_path, transform=self.transform, split='validate', style=self.pacs)
-    
+            for st in ['art_painting', 'cartoon', 'photo', 'sketch']:
+                if st is not self.pacs:
+                    if b is False:
+                        self._train = PACS(self.data_path, transform=self.transform, split='train', style=st)
+                        stack_d.append(self._train.train_data)
+                        stack_l.append(self._train.train_labels)
+                        b = True
+                    else:
+                        tmp = PACS(self.data_path, transform=self.transform, split='train', style=st)
+                        stack_d.append(tmp.train_data)
+                        stack_l.append(tmp.train_labels)
+            self._train.train_data = np.concatenate(stack_d)
+            self._train.train_labels = np.concatenate(stack_l)
+
+
+
+
     def batch_loader(self, b_size):
         """ Batch loader
 
