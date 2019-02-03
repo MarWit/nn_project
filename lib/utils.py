@@ -1,7 +1,9 @@
 import numpy as np
+
 import torch
 from matplotlib import pyplot
 from lib.plotter import plot_history
+import os
 
 def to_3channels(img):
     """To 3 channels
@@ -136,5 +138,18 @@ def alex_classifier(num_classes=1000):
         torch.nn.Linear(4096, 4096),
         torch.nn.ReLU(inplace=True),
         torch.nn.Linear(4096, num_classes),
-        torch.nn.LogSoftmax()
+        torch.nn.LogSoftmax(dim=1)
     )
+def save_model(model, name):
+    root = os.path.expanduser('./models')
+    torch.save(model.state_dict(), os.path.join(root, name))
+
+def load_model(model, name):
+    root = os.path.expanduser('./models')
+    model.load_state_dict(torch.load(os.path.join(root, name)))    
+    model.eval()
+
+def list_models():
+    root = os.path.expanduser('./models')    
+    return os.listdir(root)
+            
