@@ -4,6 +4,7 @@ import torch
 from matplotlib import pyplot
 from lib.plotter import plot_history
 import os
+import copy
 
 def to_3channels(img):
     """To 3 channels
@@ -119,6 +120,7 @@ def train(model, data_loaders, optimizer, criterion, num_epochs=1,
             if val_err_rate < best_val_err:
                 best_epoch = epoch
                 best_val_err = val_err_rate
+                best_params = copy.deepcopy(model.state_dict())
             m = "After epoch {0: >2} | valid err rate: {1: >5.2f}% | doing {2: >3} epochs" \
                 .format(epoch, val_err_rate, num_epochs)
             print('{0}\n{1}\n{0}'.format('-' * len(m), m))
@@ -126,7 +128,7 @@ def train(model, data_loaders, optimizer, criterion, num_epochs=1,
         pass
     if best_params is not None:
         print("\nLoading best params on validation set (epoch %d)\n" %(best_epoch))
-        model.parameters = best_params
+        model.load_state_dict(best_params)
     plot_history(history)
     
 def alex_classifier(num_classes=1000):
