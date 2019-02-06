@@ -22,7 +22,7 @@ class datasets(object):
         self.dataset_list = list(zip(self.dataset_list_plain, [self.load_mnist, self.load_mnist_m, self.load_svhn, self.load_usps, self.load_pacs]))
         self.data_path = './data'    
 
-    def create_dataset(self, dataset, train_size=None, data_aug=False, img_size=224, transform=None, pacs='art_painting', pacs_heuristic=False):
+    def create_dataset(self, dataset, train_size=None, data_aug=False, img_size=224, transform=None, pacs='art_painting', pacs_heuristic=False, extra=False):
         """Create dataset
 
         Parameters:
@@ -54,6 +54,7 @@ class datasets(object):
         self.transform = transform
         self.pacs = pacs
         self.heu = pacs_heuristic
+        self.ex = extra
 
         if 'self._train' in locals():
             if self._train is not None:
@@ -146,11 +147,20 @@ class datasets(object):
                         self._train = PACS(self.data_path, transform=self.transform, split='train', style=st)
                         stack_d.append(self._train.train_data)
                         stack_l.append(self._train.train_labels)
+                        if self.ex is True:
+                            tmp = PACS(self.data_path, transform=self.transform, split='validate', style=st)                          
+                            stack_d.append(tmp.extra_data)
+                            stack_l.append(tmp.extra_labels)
                         b = True
                     else:
                         tmp = PACS(self.data_path, transform=self.transform, split='train', style=st)
                         stack_d.append(tmp.train_data)
                         stack_l.append(tmp.train_labels)
+                        if self.ex is True:
+                            tmp = PACS(self.data_path, transform=self.transform, split='validate', style=st)                            
+                            stack_d.append(tmp.extra_data)
+                            stack_l.append(tmp.extra_labels)
+                                                    
             self._train.train_data = np.concatenate(stack_d)
             self._train.train_labels = np.concatenate(stack_l)
 
