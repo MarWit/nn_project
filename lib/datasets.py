@@ -13,7 +13,7 @@ import os
 import torch.utils.data as data
 from PIL import Image
 
-from lib import plotter
+from lib import plotter, utils
 
 
 class datasets(object):
@@ -586,8 +586,8 @@ def mnist_loader(deg, size, mnist_degs):
         if i is not deg:
             data.append(mnist_degs[i][0])
             labels.append(mnist_degs[i][1])
-    train = mnist_dataset(torch.cat(data), torch.cat(labels))
-    test = mnist_dataset(mnist_degs[deg][0], mnist_degs[deg][1])
+    train = mnist_dataset(utils.to_3channels(torch.cat(data)), torch.cat(labels))
+    test = mnist_dataset(utils.to_3channels(mnist_degs[deg][0]), mnist_degs[deg][1])
     return {
         'train': torch.utils.data.DataLoader(
             train, batch_size=size, shuffle=True,
