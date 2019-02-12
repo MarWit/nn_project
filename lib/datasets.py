@@ -509,3 +509,91 @@ class MNISTM(data.Dataset):
             torch.save(test_set, f)
 
         print('Done!')
+
+
+class mnist_dataset(torch.utils.data.Dataset):
+
+    def __init__(self, data, labels):
+        """
+        Args:
+            text_file(string): path to text file
+            root_dir(string): directory with all train images
+        """
+        self.image_data = data
+        self.label = labels
+        
+    def __len__(self):
+        return len(self.image_data)
+
+    def __getitem__(self, idx):
+        img = self.image_data[idx]
+        target = self.label[idx]
+
+        
+        return img, target
+
+
+def generate_degset(size=100, img_size=24):
+    
+    angles = [0, 15, 30, 45, 60, 75]
+
+    data_path = './data'
+
+    transform = torchvision.transforms.Compose([
+        torchvision.transforms.ToTensor()])
+
+    tv = torchvision.transforms.Compose([
+            torchvision.transforms.ToTensor(),
+            torchvision.transforms.Normalize((0.1307,), (0.3081,))])
+
+
+    mnist_degs = []
+
+    _train = torchvision.datasets.MNIST(
+        data_path, train=True, download=True, transform=None)
+
+    with torch.no_grad():
+        for angle in angles:
+
+            mnist_data = []
+            mnist_label = []
+            for i in range(0, 10):
+                mnist_data.append(_train.train_data[_train.train_labels == i][np.random.choice(5000, size, replace=False)].numpy())
+                mnist_label.append((_train.train_labels[:size] * 0) + i)
+
+            mnist_data = np.vstack(mnist_data)
+            mnist_label = torch.cat(mnist_label)
+
+            tmp2 = []
+
+            for i in range(0, mnist_data.shape[0]):
+                tmp = torchvision.transforms.Compose([
+                    torchvision.transforms.Resize(img_size)])
+
+                img = Image.fromarray(mnist_data[i], mode='L')
+                img = tmp(img)
+                img = torchvision.transforms.functional.rotate(img,  angle)
+                img = tv(img)
+                tmp2.append(img)
+
+            mnist_degs.append((torch.stack(tmp2), mnist_label))
+    return mnist_degs
+
+def mnist_loader(deg, size, mnist_degs):
+    data = []
+    labels = []
+    for i in range(0, 6):
+        if i is not deg:
+            data.append(mnist_degs[i][0])
+            labels.append(mnist_degs[i][1])
+    train = mnist_dataset(torch.cat(data), torch.cat(labels))
+    test = mnist_dataset(mnist_degs[deg][0], mnist_degs[deg][1])
+    return {
+        'train': torch.utils.data.DataLoader(
+            train, batch_size=size, shuffle=True,
+            pin_memory=True, num_workers=2),
+        'test' : torch.utils.data.DataLoader(
+            test, batch_size=size, shuffle=False,
+            num_workers=10
+        )
+    }
