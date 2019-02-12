@@ -115,10 +115,10 @@ def train(model, data_loaders, optimizer, criterion, num_epochs=1,
                           .format(iter_, loss.item(), err_rate))
 
             
-            model = model.eval()
+            model.eval()
             val_err_rate = compute_error_rate(model, data_loaders['test'], cuda)
             history['val_errs'].append((iter_, val_err_rate))
-            model = model.train()
+            model.train()
 
             if val_err_rate < best_val_err:
                 best_epoch = epoch
