@@ -15,14 +15,16 @@ from PIL import Image
 
 from lib import plotter, utils
 
+import glob
+
 
 class datasets(object):
     def __init__(self):
-        self.dataset_list_plain = ['mnist', 'mnist_m', 'svhn', 'usps', 'pacs']
-        self.dataset_list = list(zip(self.dataset_list_plain, [self.load_mnist, self.load_mnist_m, self.load_svhn, self.load_usps, self.load_pacs]))
+        self.dataset_list_plain = ['mnist', 'mnist_m', 'svhn', 'usps', 'pacs', 'fergd']
+        self.dataset_list = list(zip(self.dataset_list_plain, [self.load_mnist, self.load_mnist_m, self.load_svhn, self.load_usps, self.load_pacs, self.load_fergd]))
         self.data_path = './data'    
 
-    def create_dataset(self, dataset, train_size=None, data_aug=False, img_size=224, transform=None, pacs='art_painting', pacs_heuristic=False, extra=False):
+    def create_dataset(self, dataset, train_size=None, data_aug=False, img_size=224, transform=None, pacs='art_painting', pacs_heuristic=False, extra=False, p=0.0):
         """Create dataset
 
         Parameters:
@@ -55,6 +57,7 @@ class datasets(object):
         self.pacs = pacs
         self.heu = pacs_heuristic
         self.ex = extra
+        self.p = p
 
         if 'self._train' in locals():
             if self._train is not None:
@@ -127,6 +130,15 @@ class datasets(object):
 
         self._train = USPS(self.data_path, transform=self.transform, train=True)
         self._test = USPS(self.data_path, transform=self.transform, train=False)
+    def load_fergd(self):
+        if self.transform is None:
+            self.get_transform(((0.5,0.5,0.5), (0.5,0.5,0.5)))
+
+        self._train = FERGD(self.data_path, transform=self.transform, split='train', p=self.p)
+        self._test = FERGD(self.data_path, transform=self.transform, split='test', p=self.p)
+        self._extra = FERGD(self.data_path, transform=self.transform, split='valid', p=self.p)
+        
+
 
     def load_pacs(self):
         if self.transform is None:
@@ -597,3 +609,71 @@ def mnist_loader(deg, size, mnist_degs):
             num_workers=10
         )
     }
+
+class FERGD(data.Dataset):
+    url = "http://www.eecs.qmul.ac.uk/~dl307/project_iccv2017"
+    file = 'fergd/'
+    styles =  ['art_painting', 'cartoon', 'photo', 'sketch']
+
+
+    def __init__(self, root, transform=None, split='train', p=0.0):
+        super(FERGD, self).__init__()
+        self.root = os.path.expanduser(root)
+        self.transform = transform
+        self.split = split
+        
+        r = 0
+        
+        if split is 'train':
+            r = 5000
+        elif split is 'validate':
+            r = 3000
+        else:
+            r = 2000
+            
+        images = []
+        labels = []
+        
+        for i in range(1, 8):
+            for f in glob.iglob(os.path.join(self.root, self.file, str(p), split, str(i)+'/*')):
+                images.append(np.asarray(Image.open(f).convert('RGB')))
+                labels.append(i)
+        
+            
+        if self.split is 'train':
+            self.train_data = np.array(images)
+            self.train_labels = np.array(labels)
+        if self.split is 'valid':
+            self.valid_data = np.array(images)
+            self.valid_labels = np.array(labels)        
+        if self.split is 'test':
+            self.test_data = np.array(images)
+            self.test_labels = np.array(labels)
+                                             
+
+    def __getitem__(self, index):
+        if self.split is 'train':
+            img, target = self.train_data[index], self.train_labels[index]
+        if self.split is 'test':
+            img, target = self.test_data[index], self.test_labels[index]
+        if self.split is 'valid':
+            img, target = self.valid_data[index], self.valid_labels[index]
+
+        img = Image.fromarray(np.int8(img), mode='RGB')
+
+        if self.transform is not None:
+            img = self.transform(img)
+
+        return img, target
+
+    def __len__(self):
+        if self.split is 'train':
+            return len(self.train_data)
+        if self.split is 'test':
+            return len(self.test_data)
+        if self.split is 'valid':
+            return len(self.valid_data)  
+
+    def _check_exists(self):
+        return os.path.exists(os.path.join(os.path.join(self.root, self.file, (self.style + '_' + self.split + '.hdf5'))))
+  

@@ -67,7 +67,7 @@ def compute_error_rate(model, data_loader, cuda=True):
     return 100.0 * num_errs / num_examples
 
 def train(model, data_loaders, optimizer, criterion, num_epochs=1,
-          log_every=100, cuda=True):
+          log_every=100, cuda=True, test_dataset='test'):
     if cuda:
         model.cuda()  
     
@@ -116,7 +116,7 @@ def train(model, data_loaders, optimizer, criterion, num_epochs=1,
 
             
             model.eval()
-            val_err_rate = compute_error_rate(model, data_loaders['test'], cuda)
+            val_err_rate = compute_error_rate(model, data_loaders[test_dataset], cuda)
             history['val_errs'].append((iter_, val_err_rate))
             model.train()
 
