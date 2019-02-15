@@ -6,394 +6,266 @@
 
 \usepackage{hyperref}
 \usepackage{url}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{float}
+\usepackage{csquotes}
 
 
-\title{Formatting Instructions for ICLR 2019 / \\ Conference Submissions}
+\title{Learning Robust Representations by Projecting Superficial Statistics Out \\ ICLR 2019 Reproducibility Challenge}
 
-% Authors must not appear in the submitted version. They should be hidden
-% as long as the \iclrfinalcopy macro remains commented out below.
-% Non-anonymous submissions will be rejected without review.
 
-\author{Antiquus S.~Hippocampus, Natalia Cerebro \& Amelie P. Amygdale \thanks{ Use footnote for providing further information
-about author (webpage, alternative address)---\emph{not} for acknowledging
-funding agencies.  Funding acknowledgements go at the end of the paper.} \\
-Department of Computer Science\\
-Cranberry-Lemon University\\
-Pittsburgh, PA 15213, USA \\
-\texttt{\{hippo,brain,jen\}@cs.cranberry-lemon.edu} \\
-\And
-Ji Q. Ren \& Yevgeny LeNet \\
-Department of Computational Neuroscience \\
-University of the Witwatersrand \\
-Joburg, South Africa \\
-\texttt{\{robot,net\}@wits.ac.za} \\
-\AND
-Coauthor \\
-Affiliation \\
-Address \\
-\texttt{email}
+\author{Marcin Witkowski \& Łukasz Klasiński \\
+Institute of Computer Science \\
+University of Wroclaw \\
+Wroclaw, Poland \\
+\texttt{\{288840,290043\}@uwr.edu.pl} \\
 }
-
-% The \author macro works with any number of authors. There are two commands
-% used to separate the names and addresses of multiple authors: \And and \AND.
-%
-% Using \And between authors leaves it to \LaTeX{} to determine where to break
-% the lines. Using \AND forces a linebreak at that point. So, if \LaTeX{}
-% puts 3 of 4 authors names on the first line, and the last on the second
-% line, try using \AND instead of \And before the third author name.
 
 \newcommand{\fix}{\marginpar{FIX}}
 \newcommand{\new}{\marginpar{NEW}}
 
-%\iclrfinalcopy % Uncomment for camera-ready version, but NOT for submission.
-\begin{document}
+%\iclrfinalcopy % Uncomment for camera-ready version, but NOT for submission. TODO:
 
+\begin{document}
 
 \maketitle
 
 \begin{abstract}
-The abstract paragraph should be indented 1/2~inch (3~picas) on both left and
-right-hand margins. Use 10~point type, with a vertical spacing of 11~points.
-The word \textsc{Abstract} must be centered, in small caps, and in point size 12. Two
-line spaces precede the abstract. The abstract must be limited to one
-paragraph.
+The main goal of reproduced paper is to build a classifier that is not susceptible to covariance shift
+of the data, thus helping neural network to create better domain generalization. They introduce new neural building
+block - NGLCM and a method to project out textural information learned by CNN - HEX. In this
+paper we tried to reproduce said method and compare results by training model on PACS \citep{Li2017dg}, MNIST and FERG-DB \citep{aneja2016modeling}.
+
 \end{abstract}
 
-\section{Submission of conference papers to ICLR 2019}
+\section{Method}
 
-ICLR requires electronic submissions, processed by
-\url{https://openreview.net/}. See ICLR's website for more instructions.
+\subsection{NGLCM}
 
-If your paper is ultimately accepted, the statement {\tt
-  {\textbackslash}iclrfinalcopy} should be inserted to adjust the
-format to the camera ready requirements.
+NGLCM is a neural block that mimics \textit{gray-level co-occurrence matrix} (GLCM) \citep{glcm}
+idea. Main difference is than NGLCM can be trained like any other NN layer during back-propagation, allowing
+to tune it's parameters. Thanks to that, this block can extract textural 
+information about image but is not capable of extracting semantic information. This is used later to 
+unlearn classifier layer from associating textual noises to labels. 
 
-The format for the submissions is a variant of the NIPS format.
-Please read carefully the instructions below, and follow them
-faithfully.
+\subsection{HEX}
 
-\subsection{Style}
+The main idea of HEX is to project predictions based on all information about data onto subspace which is orthogonal to the ones based on textual-only description of input.
+Then we project-out unnecessary noise information. As a result we should obtain predictions which are more independent to covariance shifts, thus more reliable
+in domain classification. It is achieved be using three different outputs:
 
-Papers to be submitted to ICLR 2019 must be prepared according to the
-instructions presented here.
+\begin{align*}
+F_A & = f([h(X;\theta), g(X;\phi)];\xi) \\
+F_G & = f([\mathbf{0}, g(X;\phi);\xi]) \\
+F_P & = f([h(X;\theta), \mathbf{0}];\xi)
+\end{align*}
 
-%% Please note that we have introduced automatic line number generation
-%% into the style file for \LaTeXe. This is to help reviewers
-%% refer to specific lines of the paper when they make their comments. Please do
-%% NOT refer to these line numbers in your paper as they will be removed from the
-%% style file for the final version of accepted papers.
+where $F_A$, $F_G$, $F_P$ stands respectively for the results from all representation, only textural representation and raw data.
 
-Authors are required to use the ICLR \LaTeX{} style files obtainable at the
-ICLR website. Please make sure you use the current files and
-not previous versions. Tweaking the style files may be grounds for rejection.
+Projecting $F_A$ onto the subspace that is orthogonal to $F_G$ with
+$$F_L = (I - F_G(F_G^T F_G)^{-1} F_G^T) F_A$$
+yields $F_L$ for parameter tuning. In testing time $F_P$ is used instead of $F_L$. More information about rationale of this method can be
+found in appendix of original paper \citet{wang2018learning}
 
-\subsection{Retrieval of style files}
+\pagebreak
 
-The style files for ICLR and other conference information are available on the World Wide Web at
-\begin{center}
-   \url{http://www.iclr.cc/}
-\end{center}
-The file \verb+iclr2019_conference.pdf+ contains these
-instructions and illustrates the
-various formatting requirements your ICLR paper must satisfy.
-Submissions must be made using \LaTeX{} and the style files
-\verb+iclr2019_conference.sty+ and \verb+iclr2019_conference.bst+ (to be used with \LaTeX{}2e). The file
-\verb+iclr2019_conference.tex+ may be used as a ``shell'' for writing your paper. All you
-have to do is replace the author, title, abstract, and text of the paper with
-your own.
+\section{Reproduction details}
+In this section we will describe how we tried to reproduce results featured in original paper.
 
-The formatting instructions contained in these style files are summarized in
-sections \ref{gen_inst}, \ref{headings}, and \ref{others} below.
+\subsection{Implementation}
 
-\section{General formatting instructions}
-\label{gen_inst}
+Everything was implemented using PyTorch, open-source machine learning library for Python. Since no code was provided with paper,
+we had to write everything from scratch. We have performed all tests using Jupyter Notebooks so they are easy to repeat at will.
 
-The text must be confined within a rectangle 5.5~inches (33~picas) wide and
-9~inches (54~picas) long. The left margin is 1.5~inch (9~picas).
-Use 10~point type with a vertical spacing of 11~points. Times New Roman is the
-preferred typeface throughout. Paragraphs are separated by 1/2~line space,
-with no indentation.
+We have implemented NGLCM block correspondingly to the paper, although we had to guess what direction was used in 
+GLCM matrix (we used default 0), as well as we had to guess MLP layer shape. Another assumption was that the output
+of NGLCM is $16\times244$ matrix ($16\times16$ pushed through MLP layer), but we somehow had to make classifier vector. To accomplish that we `squashed`
+it to $16\cdot244$ length vector to further concatenate it with AlexNet output and pass to HEX projection.
 
-Paper title is 17~point, in small caps and left-aligned.
-All pages should start at 1~inch (6~picas) from the top of the page.
+Same goes from HEX. We calculated $F_A$, $F_G$ and $F_P$ as in paper and finally coded $F_L$. Then results from $F_L$ 
+are passed into final SoftMax classification layer.
 
-Authors' names are
-set in boldface, and each name is placed above its corresponding
-address. The lead author's name is to be listed first, and
-the co-authors' names are set to follow. Authors sharing the
-same address can be on the same line.
+\subsection{Datasets}
 
-Please pay special attention to the instructions in section \ref{others}
-regarding figures, tables, acknowledgments, and references.
+\subsubsection{MNIST}
 
-\section{Headings: first level}
-\label{headings}
+Firstly, we generated 6 datasets where each of them has 100 images per label, 10k images total . Subsequent datasets have images rotated by angle
+$\alpha \in \{0^{\circ}, 15^{\circ}, 30^{\circ}, 45^{\circ}, 60^{\circ}, 75^{\circ}\}$, each of them representing one domain.    
+We use all domains but one for training and remaining one for testing.
 
-First level headings are in small caps,
-flush left and in point size 12. One line space before the first level
-heading and 1/2~line space after the first level heading.
+\subsubsection{FERG-DB}
 
-\subsection{Headings: second level}
+Like in original paper, we used modified FERG-DB with backgrounds correlated to emotions. As we did not have access to original dataset
+used in paper, we generated set of datasets based on clean FERG database. While we used same partitioning of data ($50\%$ train, $30\%$ valid, $20\%$ test),
+each of datasets has $\approx 10 000$ images instead of $50 000$. Samples of images from datasets ($\rho=0.8$) are presented below:
 
-Second level headings are in small caps,
-flush left and in point size 10. One line space before the second level
-heading and 1/2~line space after the second level heading.
-
-\subsubsection{Headings: third level}
-
-Third level headings are in small caps,
-flush left and in point size 10. One line space before the third level
-heading and 1/2~line space after the third level heading.
-
-\section{Citations, figures, tables, references}
-\label{others}
-
-These instructions apply to everyone, regardless of the formatter being used.
-
-\subsection{Citations within the text}
-
-Citations within the text should be based on the \texttt{natbib} package
-and include the authors' last names and year (with the ``et~al.'' construct
-for more than two authors). When the authors or the publication are
-included in the sentence, the citation should not be in parenthesis (as
-in ``See \citet{Hinton06} for more information.''). Otherwise, the citation
-should be in parenthesis (as in ``Deep learning shows promise to make progress towards AI~\citep{Bengio+chapter2007}.'').
-
-The corresponding references are to be listed in alphabetical order of
-authors, in the \textsc{References} section. As to the format of the
-references themselves, any style is acceptable as long as it is used
-consistently.
-
-\subsection{Footnotes}
-
-Indicate footnotes with a number\footnote{Sample of the first footnote} in the
-text. Place the footnotes at the bottom of the page on which they appear.
-Precede the footnote with a horizontal rule of 2~inches
-(12~picas).\footnote{Sample of the second footnote}
-
-\subsection{Figures}
-
-All artwork must be neat, clean, and legible. Lines should be dark
-enough for purposes of reproduction; art work should not be
-hand-drawn. The figure number and caption always appear after the
-figure. Place one line space before the figure caption, and one line
-space after the figure. The figure caption is lower case (except for
-first word and proper nouns); figures are numbered consecutively.
-
-Make sure the figure caption does not get separated from the figure.
-Leave sufficient space to avoid splitting the figure and figure caption.
-
-You may use color figures.
-However, it is best for the
-figure captions and the paper body to make sense if the paper is printed
-either in black/white or in color.
 \begin{figure}[h]
-\begin{center}
-%\framebox[4.0in]{$\;$}
-\fbox{\rule[-.5cm]{0cm}{4cm} \rule[-.5cm]{4cm}{0cm}}
-\end{center}
-\caption{Sample figure caption.}
+    \minipage{0.48\textwidth}
+    \includegraphics[width=\textwidth]{res/train.jpg}
+    \caption*{(a) train set}
+    \endminipage\hfill
+    \minipage{0.288\textwidth}
+    \includegraphics[width=\textwidth]{res/valid.jpg}
+    \caption*{(b) validation set}
+    \endminipage\hfill
+    \minipage{0.192\textwidth}
+    \includegraphics[width=\textwidth]{res/test.jpg}
+    \caption*{(c) test set}
+    \endminipage\hfill
 \end{figure}
 
-\subsection{Tables}
+\subsubsection{PACS}
 
-All tables must be centered, neat, clean and legible. Do not use hand-drawn
-tables. The table number and title always appear before the table. See
-Table~\ref{sample-table}.
+Similar to MNIST datasets, we divided images from PACS into 4 domains representing art, cartoon, photo and sketch styled
+images. Then we used one domain for testing and remaining ones for train. We used all PACS data including `extra` ones.
 
-Place one line space before the table title, one line space after the table
-title, and one line space after the table. The table title must be lower case
-(except for first word and proper nouns); tables are numbered consecutively.
+\pagebreak
 
-\begin{table}[t]
-\caption{Sample table title}
-\label{sample-table}
-\begin{center}
-\begin{tabular}{ll}
-\multicolumn{1}{c}{\bf PART}  &\multicolumn{1}{c}{\bf DESCRIPTION}
-\\ \hline \\
-Dendrite         &Input terminal \\
-Axon             &Output terminal \\
-Soma             &Cell body (contains cell nucleus) \\
-\end{tabular}
-\end{center}
+\subsection{Experiments}
+
+During challenge we tried to reproduce three experiments described in original paper.
+
+\subsubsection{MNIST}
+    MNIST rotation dataset tests, where we tried to replicate results from paper, provided in Table 3. \citep{wang2018learning}. We used hyperparameters listed below:
+        
+        \begin{enumerate}
+            \item optimizer: Adam
+            \item learning rate: $10^{-3}$
+            \item weight decay: $10^{-3}$
+            \item 50 epochs
+        \end{enumerate}
+
+    Experiment went quite well and we managed to reach similar results as in original paper.
+
+\subsubsection{FERG-DB}
+    FERG-DB tests, where we prepared 10 different datasets, each created with background correlation variable $\rho \in\{0.0, 0.9\}$. Then we
+    tested it using two models: HEX and modified HEX, where we replaced whole NGLCM module with single $224\times16$ MLP layer. In paper, testing using this modification is called `Ablation tests`.
+        
+        \begin{enumerate}
+            \item optimizer: Adam
+            \item learning rate: $5\cdot10^{-4}$
+            \item 70-100 epochs
+        \end{enumerate}
+
+    Hex training was converging very quickly to $100\%$ validate accuracy so we shortened epochs to 70 (from 100 in paper) to save time.
+    We also noticed that during Ablation test we sometimes had to rerun training because model over fitted to test
+    data too quickly to reach good validation results. Also we were not sure what number of parameters to give for MLP layer,
+    so we picked $224\times16$ since it is a bit less then number of parameters for NGLCM.
+
+\subsubsection{PACS}
+    PACS domain shift tests, where we wanted to replicate results, provided in Table 4. \citep{wang2018learning}. We used random data augmentation (crops and vertical flips) to prevent overfitting.
+    We first trained AlexNet alone to see if we get similar results.
+        
+        \begin{enumerate}
+            \item optimizer: Adam
+            \item learning rate: $10^{-3}$
+            \item weight decay: $0$ or $10^{-2}$
+            \item 50 epochs
+        \end{enumerate}
+
+    We wanted do get the best results we could, so we used a two step learning. First we have loaded AlexNet pretrained
+    on ImageNet dataset (provided by torch library) and trained only classifier. Then to fine tune the network we have added
+    weight decay to optimizer and trained all parameters for additional 50 epochs. We saved model that got best results during
+    this two stage training and calculated accuracy.
+
+    \pagebreak
+
+    After getting somehow positive results from AlexNet, we tested if HEXnet would perform better or similar. We used hyper parameters listed below:
+        
+        \begin{enumerate}
+            \item optimizer: Adam
+            \item learning rate: $10^{-5}$
+            \item weight decay: $10^{-5}$
+            \item 100 epochs
+        \end{enumerate}
+
+    Following the paper, we first trained 10 epochs of classifier layer of pretrained AlexNet, then plugged HEX in for
+    additional 100 epochs. At first we had problems with really unstable gradients, so we had to turn learning rate down drastically in 
+    comparison to AlexNet one. When we work it out, we didn't really get satisfying results no matter what strategy
+    we used. At the end we came to conclusion that in original experiments special PACS learning heuristics, described in this paper \citep{Li2017dg} must have been used.
+    Unfortunately we didn't have enough time to study and replicate such learning heuristics. Still we are surprised that
+    under the same condition HEXnet performed far worse then AlexNet, which according to paper results should be worse.
+
+\section{Results}
+\subsection{MNIST}
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{cccc}
+        \hline
+        Test domain & ADV & HEX & \color{blue} HEX \color{black} \\
+        \hline
+        $\mathcal{M}_{0^{\circ}}$    & 91.1 & 90.1 & 92.3 \\
+        $\mathcal{M}_{{15}^{\circ}}$ & 98.2 & 98.9 & 98.7 \\
+        $\mathcal{M}_{{30}^{\circ}}$ & 98.6 & 98.9 & 97.1 \\
+        $\mathcal{M}_{{45}^{\circ}}$ & 98.7 & 98.8 & 97.9 \\
+        $\mathcal{M}_{{60}^{\circ}}$ & 98.4 & 98.3 & 96.5 \\
+        $\mathcal{M}_{{75}^{\circ}}$ & 92.0 & 90.0 & 93.1 \\
+        \hline
+        Avg & 96.2 & 95.8 & 95.9 \\
+        \hline
+    \end{tabular}
 \end{table}
 
-\section{Default Notation}
+Our results are marked as blue. We managed to reproduce results obtained in original paper quite faithfully (Table 3  \citep{wang2018learning}).
+\subsection{FERG-DB}
 
-In an attempt to encourage standardized notation, we have included the
-notation file from the textbook, \textit{Deep Learning}
-\cite{goodfellow2016deep} available at
-\url{https://github.com/goodfeli/dlbook_notation/}.  Use of this style
-is not required and can be disabled by commenting out
-\texttt{math\_commands.tex}.
-
-
-\centerline{\bf Numbers and Arrays}
-\bgroup
-\def\arraystretch{1.5}
-\begin{tabular}{p{1in}p{3.25in}}
-$\displaystyle a$ & A scalar (integer or real)\\
-$\displaystyle \va$ & A vector\\
-$\displaystyle \mA$ & A matrix\\
-$\displaystyle \tA$ & A tensor\\
-$\displaystyle \mI_n$ & Identity matrix with $n$ rows and $n$ columns\\
-$\displaystyle \mI$ & Identity matrix with dimensionality implied by context\\
-$\displaystyle \ve^{(i)}$ & Standard basis vector $[0,\dots,0,1,0,\dots,0]$ with a 1 at position $i$\\
-$\displaystyle \text{diag}(\va)$ & A square, diagonal matrix with diagonal entries given by $\va$\\
-$\displaystyle \ra$ & A scalar random variable\\
-$\displaystyle \rva$ & A vector-valued random variable\\
-$\displaystyle \rmA$ & A matrix-valued random variable\\
-\end{tabular}
-\egroup
-\vspace{0.25cm}
-
-\centerline{\bf Sets and Graphs}
-\bgroup
-\def\arraystretch{1.5}
-
-\begin{tabular}{p{1.25in}p{3.25in}}
-$\displaystyle \sA$ & A set\\
-$\displaystyle \R$ & The set of real numbers \\
-$\displaystyle \{0, 1\}$ & The set containing 0 and 1 \\
-$\displaystyle \{0, 1, \dots, n \}$ & The set of all integers between $0$ and $n$\\
-$\displaystyle [a, b]$ & The real interval including $a$ and $b$\\
-$\displaystyle (a, b]$ & The real interval excluding $a$ but including $b$\\
-$\displaystyle \sA \backslash \sB$ & Set subtraction, i.e., the set containing the elements of $\sA$ that are not in $\sB$\\
-$\displaystyle \gG$ & A graph\\
-$\displaystyle \parents_\gG(\ervx_i)$ & The parents of $\ervx_i$ in $\gG$
-\end{tabular}
-\vspace{0.25cm}
+\begin{table}[H]
+    \centering
+    \begin{tabular}{ccc}
+        \hline
+        $\rho$ & HEX w/ MLP& HEX\\
+        \hline
+        $0.0$ & 98.9 & 99.4 \\
+        $0.1$ & 99.2 & 99.6 \\
+        $0.2$ & 98.8 & 99.7 \\
+        $0.3$ & 98.2 & 99.4 \\
+        $0.4$ & 99.0 & 99.1 \\
+        $0.5$ & 99.0 & 99.5 \\
+        $0.6$ & 98.0 & 99.5 \\
+        $0.7$ & 87.2 & 98.4 \\
+        $0.8$ & 91.4 & 98.4 \\
+        $0.9$ & 49.2 & 91.6 \\
+        \hline
+        Avg & 91.9 & 98.5 \\
+        \hline
+    \end{tabular}
+\end{table}
 
 
-\centerline{\bf Indexing}
-\bgroup
-\def\arraystretch{1.5}
+As we can see, HEX with NGLCM is much more stable in classification than bare CNN, yielding similar results
+to those from paper (Figure 3.  \citep{wang2018learning}). 
+Simple MLP layer isn't capable of removing background noise as good as NGLCM block.
 
-\begin{tabular}{p{1.25in}p{3.25in}}
-$\displaystyle \eva_i$ & Element $i$ of vector $\va$, with indexing starting at 1 \\
-$\displaystyle \eva_{-i}$ & All elements of vector $\va$ except for element $i$ \\
-$\displaystyle \emA_{i,j}$ & Element $i, j$ of matrix $\mA$ \\
-$\displaystyle \mA_{i, :}$ & Row $i$ of matrix $\mA$ \\
-$\displaystyle \mA_{:, i}$ & Column $i$ of matrix $\mA$ \\
-$\displaystyle \etA_{i, j, k}$ & Element $(i, j, k)$ of a 3-D tensor $\tA$\\
-$\displaystyle \tA_{:, :, i}$ & 2-D slice of a 3-D tensor\\
-$\displaystyle \erva_i$ & Element $i$ of the random vector $\rva$ \\
-\end{tabular}
-\egroup
-\vspace{0.25cm}
+\subsection{PACS}
 
+\begin{table}[H]
+    \centering
+    \begin{tabular}{ccccc}
+        \hline
+        Test domain & AlexNet & \color{blue} AlexNet \color{black} & HEX & \color{blue} HEX \color{black} \\
+        \hline
+        Art     & 63.3 & 57.2 & 66.8 & 47.6 \\
+        Cartoon & 63.1 & 61.3 & 69.7 & 65.0 \\
+        Photo   & 87.7 & 81.3 & 87.9 & 53.3 \\
+        Sketch  & 54.0 & 62.0 & 56.3 & 57.8 \\
+        \hline
+        Avg     & 67.0 & 65.5 & 70.2 & 55.9 \\
+        \hline
+    \end{tabular}
+\end{table}
 
-\centerline{\bf Calculus}
-\bgroup
-\def\arraystretch{1.5}
-\begin{tabular}{p{1.25in}p{3.25in}}
-% NOTE: the [2ex] on the next line adds extra height to that row of the table.
-% Without that command, the fraction on the first line is too tall and collides
-% with the fraction on the second line.
-$\displaystyle\frac{d y} {d x}$ & Derivative of $y$ with respect to $x$\\ [2ex]
-$\displaystyle \frac{\partial y} {\partial x} $ & Partial derivative of $y$ with respect to $x$ \\
-$\displaystyle \nabla_\vx y $ & Gradient of $y$ with respect to $\vx$ \\
-$\displaystyle \nabla_\mX y $ & Matrix derivatives of $y$ with respect to $\mX$ \\
-$\displaystyle \nabla_\tX y $ & Tensor containing derivatives of $y$ with respect to $\tX$ \\
-$\displaystyle \frac{\partial f}{\partial \vx} $ & Jacobian matrix $\mJ \in \R^{m\times n}$ of $f: \R^n \rightarrow \R^m$\\
-$\displaystyle \nabla_\vx^2 f(\vx)\text{ or }\mH( f)(\vx)$ & The Hessian matrix of $f$ at input point $\vx$\\
-$\displaystyle \int f(\vx) d\vx $ & Definite integral over the entire domain of $\vx$ \\
-$\displaystyle \int_\sS f(\vx) d\vx$ & Definite integral with respect to $\vx$ over the set $\sS$ \\
-\end{tabular}
-\egroup
-\vspace{0.25cm}
+We realized too late that in paper they probably used different training heuristics from ours, so we have different results (Table 4 \citep{wang2018learning}).
+Still we think it is strange that under the same conditions HEX performed worse then AlexNet.
 
-\centerline{\bf Probability and Information Theory}
-\bgroup
-\def\arraystretch{1.5}
-\begin{tabular}{p{1.25in}p{3.25in}}
-$\displaystyle P(\ra)$ & A probability distribution over a discrete variable\\
-$\displaystyle p(\ra)$ & A probability distribution over a continuous variable, or over
-a variable whose type has not been specified\\
-$\displaystyle \ra \sim P$ & Random variable $\ra$ has distribution $P$\\% so thing on left of \sim should always be a random variable, with name beginning with \r
-$\displaystyle  \E_{\rx\sim P} [ f(x) ]\text{ or } \E f(x)$ & Expectation of $f(x)$ with respect to $P(\rx)$ \\
-$\displaystyle \Var(f(x)) $ &  Variance of $f(x)$ under $P(\rx)$ \\
-$\displaystyle \Cov(f(x),g(x)) $ & Covariance of $f(x)$ and $g(x)$ under $P(\rx)$\\
-$\displaystyle H(\rx) $ & Shannon entropy of the random variable $\rx$\\
-$\displaystyle \KL ( P \Vert Q ) $ & Kullback-Leibler divergence of P and Q \\
-$\displaystyle \mathcal{N} ( \vx ; \vmu , \mSigma)$ & Gaussian distribution %
-over $\vx$ with mean $\vmu$ and covariance $\mSigma$ \\
-\end{tabular}
-\egroup
-\vspace{0.25cm}
+\section{Conclusion}
 
-\centerline{\bf Functions}
-\bgroup
-\def\arraystretch{1.5}
-\begin{tabular}{p{1.25in}p{3.25in}}
-$\displaystyle f: \sA \rightarrow \sB$ & The function $f$ with domain $\sA$ and range $\sB$\\
-$\displaystyle f \circ g $ & Composition of the functions $f$ and $g$ \\
-  $\displaystyle f(\vx ; \vtheta) $ & A function of $\vx$ parametrized by $\vtheta$.
-  (Sometimes we write $f(\vx)$ and omit the argument $\vtheta$ to lighten notation) \\
-$\displaystyle \log x$ & Natural logarithm of $x$ \\
-$\displaystyle \sigma(x)$ & Logistic sigmoid, $\displaystyle \frac{1} {1 + \exp(-x)}$ \\
-$\displaystyle \zeta(x)$ & Softplus, $\log(1 + \exp(x))$ \\
-$\displaystyle || \vx ||_p $ & $\normlp$ norm of $\vx$ \\
-$\displaystyle || \vx || $ & $\normltwo$ norm of $\vx$ \\
-$\displaystyle x^+$ & Positive part of $x$, i.e., $\max(0,x)$\\
-$\displaystyle \1_\mathrm{condition}$ & is 1 if the condition is true, 0 otherwise\\
-\end{tabular}
-\egroup
-\vspace{0.25cm}
-
-
-
-\section{Final instructions}
-Do not change any aspects of the formatting parameters in the style files.
-In particular, do not modify the width or length of the rectangle the text
-should fit into, and do not change font sizes (except perhaps in the
-\textsc{References} section; see below). Please note that pages should be
-numbered.
-
-\section{Preparing PostScript or PDF files}
-
-Please prepare PostScript or PDF files with paper size ``US Letter'', and
-not, for example, ``A4''. The -t
-letter option on dvips will produce US Letter files.
-
-Consider directly generating PDF files using \verb+pdflatex+
-(especially if you are a MiKTeX user).
-PDF figures must be substituted for EPS figures, however.
-
-Otherwise, please generate your PostScript and PDF files with the following commands:
-\begin{verbatim}
-dvips mypaper.dvi -t letter -Ppdf -G0 -o mypaper.ps
-ps2pdf mypaper.ps mypaper.pdf
-\end{verbatim}
-
-\subsection{Margins in LaTeX}
-
-Most of the margin problems come from figures positioned by hand using
-\verb+\special+ or other commands. We suggest using the command
-\verb+\includegraphics+
-from the graphicx package. Always specify the figure width as a multiple of
-the line width as in the example below using .eps graphics
-\begin{verbatim}
-   \usepackage[dvips]{graphicx} ...
-   \includegraphics[width=0.8\linewidth]{myfile.eps}
-\end{verbatim}
-or % Apr 2009 addition
-\begin{verbatim}
-   \usepackage[pdftex]{graphicx} ...
-   \includegraphics[width=0.8\linewidth]{myfile.pdf}
-\end{verbatim}
-for .pdf graphics.
-See section~4.4 in the graphics bundle documentation (\url{http://www.ctan.org/tex-archive/macros/latex/required/graphics/grfguide.ps})
-
-A number of width problems arise when LaTeX cannot properly hyphenate a
-line. Please give LaTeX hyphenation hints using the \verb+\-+ command.
-
-
-\subsubsection*{Acknowledgments}
-
-Use unnumbered third level headings for the acknowledgments. All
-acknowledgments, including those to funding agencies, go at the end of the paper.
+During our \textquote{reproducibility challenge} we encountered some minor and major problems.
+Paper did not contain most of informations about used hyper-parameters and some aspects of described
+methods were omitted (ex. like used heuristics or how to vectorize output of NGLCM). Overall, we were
+able to reproduce results of most of the experiments, besides PACS where we used different heuristic
+for fine-tuning CNN.
 
 \bibliography{iclr2019_conference}
 \bibliographystyle{iclr2019_conference}
