@@ -1,0 +1,9 @@
+[package]
+name = "facegen"
+version = "0.1.0"
+authors = ["MarWit <contact@marwit.rs>"]
+edition = "2018"
+
+[dependencies]
+rand = "*"
+image = "*"
